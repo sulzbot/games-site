@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Sulzbot Chess</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
+  body { background: #0a0a0c; font-family: monospace; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #hud { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; gap: 12px; font-size: clamp(12px, 3vw, 16px); background: rgba(0,0,0,0.75); padding: 6px 14px; border-radius: 8px; border: 1px solid #333; }
+  #timer { color: #ff5555; font-weight: bold; }
+  #boardWrap { position: relative; width: 92vmin; height: 92vmin; max-width: 640px; max-height: 640px; perspective: 1000px; }
+  #board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); border: 4px solid #222; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(0,128,255,0.15); transform: rotateX(15deg); transform-style: preserve-3d; }
+  .square { position: relative; display: flex; align-items: center; justify-content: center; }
+  .square.light { background: #e0cfa8; }
+  .square.dark { background: #7a5c3b; }
+  .square.selected { box-shadow: inset 0 0 0 3px #0095DD; }
+  .square.highlight { box-shadow: inset 0 0 0 3px #ffaa00; }
+  .piece { width: 80%; height: 80%; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #fff 10%, #ccc 40%, #555 85%); box-shadow: 0 4px 12px rgba(0,0,0,0.6), 0 8px 20px rgba(0,0,0,0.5), inset 0 -4px 8px rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 2.2vmin; font-weight: bold; color: #111; text-shadow: 0 1px 0 rgba(255,255,255,0.6); user-select: none; cursor: grab; transition: transform 0.1s ease; transform-style: preserve-3d; border: 1px solid rgba(0,0,0,0.15); }
+  .piece.drag { opacity: 0.6; transform: scale(1.15) translateZ(20px); }
+  .black { color: #111; background: radial-gradient(circle at 35% 25%, #ddd 10%, #888 40%, #333 85%); }
+  #startScreen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; background: rgba(0,0,0,0.92); padding: 30px; border-radius: 16px; border: 2px solid #0095DD; text-align: center; min-width: 300px; }
+  #startScreen h2 { color: #0095DD; margin-bottom: 14px; font-size: clamp(22px, 5vw, 32px); }
+  #startScreen select { font-size: 16px; padding: 8px 14px; background: #222; color: #fff; border: 1px solid #0095DD; border-radius: 6px; margin: 8px 0; font-family: monospace; }
+  #startScreen button { padding: 12px 28px; font-size: 18px; background: #0095DD; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-family: monospace; margin-top: 8px; }
+  #startScreen button:hover { background: #0077BB; }
+  #gameOver { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; background: rgba(0,0,0,0.92); padding: 30px; border-radius: 16px; border: 2px solid #0095DD; text-align: center; display: none; min-width: 280px; }
+  #gameOver h2 { color: #0095DD; margin-bottom: 10px; }
+  #gameOver p { margin: 6px 0; font-size: clamp(14px, 3vw, 18px); }
+  #gameOver button { padding: 12px 28px; font-size: 18px; background: #0095DD; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <span>You vs <strong>Sulzbot</strong></span>
+  <span>Move: <span id="turnText">Your turn</span></span>
+  <span>Timer: <span id="timer">60</span>s</span>
+  <span>Diff: <span id="diffText">3</span></span>
+</div>
+
+<div id="startScreen">
+  <h2>Sulzbot Chess</h2>
+  <div>
+    <label>Difficulty (1-10):</label><br>
+    <select id="difficultySelect">
+      <option value="1">1 - Beginner</option>
+      <option value="2">2 - Easy</option>
+      <option value="3" selected>3 - Normal</option>
+      <option value="4">4 - Confident</option>
+      <option value="5">5 - Skilled</option>
+      <option value="6">6 - Expert</option>
+      <option value="7">7 - Master</option>
+      <option value="8">8 - Grandmaster</option>
+      <option value="9">9 - Super</option>
+      <option value="10">10 - God</option>
+    </select>
+  </div>
+  <p style="font-size: 13px; color: #aaa; margin-top: 10px;">Desktop: mouse / Mobile: drag & drop</p>
+  <p style="font-size: 13px; color: #aaa;">Max 60 sec per move</p>
+  <button onclick="startGame()">Play</button>
+</div>
+
+<div id="gameOver">
+  <h2 id="gameOverTitle">Result</h2>
+  <p id="gameOverMsg"></p>
+  <button onclick="backToStart()">Play Again</button>
+</div>
+
+<div id="boardWrap"><div id="board"></div></div>
+
+<script>
+const boardEl = document.getElementById('board');
+let board = [];
+const pieceChars = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙' };
+const startBoard = [
+  ['r','n','b','q','k','b','n','r'],
+  ['p','p','p','p','p','p','p','p'],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  [null,null,null,null,null,null,null,null],
+  ['P','P','P','P','P','P','P','P'],
+  ['R','N','B','Q','K','B','N','R']
+];
+
+let selected = null, turn = 'w';
+let difficulty = 3;
+let timer = 60;
+let timerInterval = null;
+
+function initBoard() {
+  board = JSON.parse(JSON.stringify(startBoard));
+  renderBoard();
+  selected = null;
+  turn = 'w';
+  timer = 60;
+  updateHUD();
+  startTimer();
+}
+
+function renderBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const sq = document.createElement('div');
+      sq.className = 'square ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+      sq.dataset.r = r; sq.dataset.c = c;
+      const p = board[r][c];
+      if (p) {
+        const el = document.createElement('div');
+        el.className = 'piece ' + (p === p.toUpperCase() ? 'white' : 'black');
+        el.innerText = pieceChars[p.toUpperCase()] || p;
+        el.draggable = true;
+        el.addEventListener('dragstart', e => {
+          if (turn !== 'w' || p !== p.toUpperCase()) { e.preventDefault(); return; }
+          selected = {r, c};
+          e.dataTransfer.setData('text/plain', r + ',' + c);
+          el.classList.add('drag');
+          setTimeout(() => el.classList.remove('drag'), 0);
+        });
+        sq.appendChild(el);
+      }
+      sq.addEventListener('click', () => handleSquareClick(r, c));
+      sq.addEventListener('dragover', e => e.preventDefault());
+      sq.addEventListener('drop', e => {
+        e.preventDefault();
+        const [sr, sc] = e.dataTransfer.getData('text/plain').split(',').map(Number);
+        if (sr !== r || sc !== c) makeMove(sr, sc, r, c);
+      });
+      boardEl.appendChild(sq);
+    }
+  }
+}
+
+function handleSquareClick(r, c) {
+  if (turn !== 'w') return;
+  const p = board[r][c];
+  if (selected && selected.r !== r || selected.c !== c) {
+    makeMove(selected.r, selected.c, r, c);
+  } else if (p && p === p.toUpperCase()) {
+    selected = {r, c};
+    highlightMoves();
+  } else {
+    selected = null;
+    document.querySelectorAll('.square').forEach(s => s.classList.remove('selected', 'highlight'));
+  }
+}
+
+function makeMove(sr, sc, er, ec) {
+  const p = board[sr][sc];
+  board[er][ec] = p; board[sr][sc] = null;
+  selected = null; document.querySelectorAll('.square').forEach(s => s.classList.remove('selected', 'highlight'));
+  turn = 'b';
+  renderBoard(); updateHUD();
+  setTimeout(cpuMove, 400);
+}
+
+function cpuMove() {
+  // Simple CPU: random valid move scaled by difficulty (higher difficulty tries best capture first)
+  const moves = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    if (board[r][c] && board[r][c] === board[r][c].toLowerCase()) {
+      // Find captures / moves
+      for (let tr = 0; tr < 8; tr++) for (let tc = 0; tc < 8; tc++) {
+        if (board[tr][tc] === null || board[tr][tc] === board[tr][tc].toUpperCase()) {
+          moves.push({sr:r, sc:c, er:tr, ec:tc});
+        }
+      }
+    }
+  }
+  if (moves.length === 0) { turn = 'w'; updateHUD(); startTimer(); renderBoard(); return; }
+  // Difficulty affects selection: higher picks captures preferentially
+  let choice = moves[Math.floor(Math.random() * moves.length)];
+  if (difficulty >= 7 && Math.random() < 0.8) {
+    const captures = moves.filter(m => board[m.er][m.ec] && board[m.er][m.ec] === board[m.er][m.ec].toUpperCase());
+    if (captures.length) choice = captures[Math.floor(Math.random() * captures.length)];
+  }
+  if (difficulty >= 4 && Math.random() < 0.5) {
+    const captures = moves.filter(m => board[m.er][m.ec] && board[m.er][m.ec] === board[m.er][m.ec].toUpperCase());
+    if (captures.length) choice = captures[Math.floor(Math.random() * captures.length)];
+  }
+  const p = board[choice.sr][choice.sc];
+  board[choice.er][choice.ec] = p; board[choice.sr][choice.sc] = null;
+  turn = 'w'; renderBoard(); updateHUD(); startTimer();
+}
+
+function highlightMoves() { document.querySelectorAll('.square.selected, .square.highlight').forEach(s => s.classList.remove('selected', 'highlight')); if (!selected) return; document.querySelector('.square[data-r="'+selected.r+'"][data-c="'+selected.c+'"]').classList.add('selected'); }
+
+function startTimer() { clearInterval(timerInterval); timerInterval = setInterval(() => { timer--; document.getElementById('timer').textContent = timer; if (timer <= 0) { clearInterval(timerInterval); document.getElementById('gameOverTitle').textContent = 'Time Up'; document.getElementById('gameOverMsg').textContent = 'You ran out of time. Sulzbot wins!'; document.getElementById('gameOver').style.display = 'block'; } }, 1000); }
+
+function updateHUD() { document.getElementById('turnText').textContent = turn === 'w' ? 'Your turn' : "Sulzbot's turn"; document.getElementById('diffText').textContent = difficulty; }
+
+function startGame() {
+  difficulty = parseInt(document.getElementById('difficultySelect').value);
+  document.getElementById('startScreen').style.display = 'none';
+  initBoard();
+}
+function backToStart() { document.getElementById('gameOver').style.display = 'none'; document.getElementById('startScreen').style.display = 'block'; }
+
+initBoard();
+</script>
+</body>
+</html>
