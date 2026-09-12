@@ -2,23 +2,128 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Sulzbot Breakout</title>
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; font-family: monospace; color: #fff; }
-    canvas { border: 2px solid #444; background: #111; }
-    #info { position: absolute; top: 10px; left: 10px; font-size: 18px; }
-    #gameOver { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; display: none; }
-    #gameOver button { margin-top: 10px; padding: 5px 10px; font-size: 16px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      background: #000; 
+      font-family: monospace; 
+      color: #fff; 
+      overflow: hidden;
+      touch-action: none;
+    }
+    #gameContainer { 
+      position: relative; 
+      width: 100vw; 
+      height: 100vh; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+    }
+    canvas { 
+      border: 2px solid #444; 
+      background: #111; 
+      display: block;
+    }
+    #hud { 
+      position: fixed; 
+      top: 10px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      font-size: clamp(14px, 3vw, 20px); 
+      z-index: 10;
+      display: flex;
+      gap: clamp(10px, 5vw, 30px);
+    }
+    #hud span { background: rgba(0,0,0,0.7); padding: 4px 10px; border-radius: 4px; }
+    #controller { 
+      position: fixed; 
+      bottom: 10px; 
+      left: 50%; 
+      transform: translateX(-50%); 
+      width: clamp(200px, 60vw, 350px); 
+      height: clamp(60px, 15vh, 100px);
+      display: none;
+      z-index: 20;
+    }
+    @media (max-width: 768px) {
+      #controller { display: block; }
+    }
+    .controller-track { 
+      width: 100%; 
+      height: 100%; 
+      background: rgba(255,255,255,0.1); 
+      border: 2px solid #444; 
+      border-radius: 12px; 
+      position: relative; 
+      overflow: hidden; 
+    }
+    .controller-knob { 
+      position: absolute; 
+      top: 50%; 
+      left: 50%; 
+      width: clamp(40px, 12vw, 60px); 
+      height: clamp(40px, 12vw, 60px); 
+      background: radial-gradient(circle at 30% 30%, #0095DD, #005588); 
+      border: 2px solid #0095DD; 
+      border-radius: 50%; 
+      transform: translate(-50%, -50%); 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.05s linear;
+      touch-action: none;
+    }
+    .controller-knob:active { background: radial-gradient(circle at 30% 30%, #00AAFF, #0077BB); }
+    #gameOver { 
+      position: fixed; 
+      top: 50%; 
+      left: 50%; 
+      transform: translate(-50%, -50%); 
+      text-align: center; 
+      display: none; 
+      z-index: 30;
+      background: rgba(0,0,0,0.95);
+      padding: clamp(20px, 5vw, 40px);
+      border-radius: 16px;
+      border: 2px solid #0095DD;
+      min-width: 280px;
+    }
+    #gameOver h2 { margin-bottom: 10px; color: #0095DD; font-size: clamp(20px, 6vw, 32px); }
+    #gameOver p { margin-bottom: 20px; font-size: clamp(16px, 4vw, 24px); }
+    #gameOver button { 
+      padding: 12px 28px; 
+      font-size: clamp(16px, 4vw, 20px); 
+      background: #0095DD; 
+      border: none; 
+      border-radius: 8px; 
+      color: #fff; 
+      font-family: monospace; 
+      cursor: pointer; 
+    }
+    #gameOver button:active { background: #0077BB; }
+    #winMessage { display: none; color: #0F0; }
   </style>
 </head>
 <body>
-  <div id="info">Lives: <span id="lives">3</span> | Score: <span id="score">0</span></div>
+  <div id="hud">
+    <span>Lives: <span id="lives">3</span></span>
+    <span>Score: <span id="score">0</span></span>
+  </div>
+  <div id="gameContainer">
+    <canvas id="game"></canvas>
+  </div>
+  <div id="controller">
+    <div class="controller-track" id="track">
+      <div class="controller-knob" id="knob"></div>
+    </div>
+  </div>
   <div id="gameOver">
-    <div>Game Over!</div>
-    <div>Final Score: <span id="finalScore">0</span></div>
+    <h2 id="gameOverTitle">Game Over</h2>
+    <p>Final Score: <span id="finalScore">0</span></p>
+    <p id="winMessage">You Win! 🎉</p>
     <button onclick="resetGame()">Play Again</button>
   </div>
-  <canvas id="game" width="800" height="600"></canvas>
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
@@ -26,19 +131,47 @@
     const scoreEl = document.getElementById('score');
     const finalScoreEl = document.getElementById('finalScore');
     const gameOverDiv = document.getElementById('gameOver');
+    const gameOverTitle = document.getElementById('gameOverTitle');
+    const winMessage = document.getElementById('winMessage');
+    const knob = document.getElementById('knob');
+    const track = document.getElementById('track');
 
-    const paddleWidth = 100, paddleHeight = 20;
-    const ballSize = 12;
+    // Game constants
     const brickRowCount = 6, brickColumnCount = 12;
-    const brickWidth = 60, brickHeight = 20;
+    const brickHeight = 20;
     const brickPadding = 10, brickOffsetTop = 50, brickOffsetLeft = 40;
+    const ballSize = 12;
+    const paddleHeight = 20;
 
-    let paddleX = (canvas.width - paddleWidth) / 2;
-    let ballX = canvas.width / 2, ballY = canvas.height - 40;
-    let ballDX = 4, ballDY = -4;
+    // Dynamic sizes
+    let canvasWidth, canvasHeight, paddleWidth, brickWidth;
+    let isMobile = false;
+
+    // Game state
+    let paddleX, ballX, ballY, ballDX, ballDY;
     let lives = 3, score = 0;
     let rightPressed = false, leftPressed = false;
     let bricks = [];
+    let animationId = null;
+    let controllerActive = false;
+    let controllerStartX = 0, controllerStartPaddleX = 0;
+
+    function computeSizes() {
+      const container = document.getElementById('gameContainer');
+      const maxWidth = Math.min(window.innerWidth * 0.95, 800);
+      const maxHeight = window.innerHeight * 0.85;
+      
+      canvasWidth = maxWidth;
+      canvasHeight = maxHeight;
+      
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+      
+      paddleWidth = Math.max(80, canvasWidth * 0.15);
+      brickWidth = (canvasWidth - brickOffsetLeft * 2 - brickPadding * (brickColumnCount - 1)) / brickColumnCount;
+      
+      isMobile = window.innerWidth <= 768 || window.innerHeight <= 768;
+    }
 
     function initBricks() {
       for (let c = 0; c < brickColumnCount; c++) {
@@ -49,18 +182,47 @@
       }
     }
 
+    function resetBall() {
+      ballX = canvasWidth / 2;
+      ballY = canvasHeight - paddleHeight - 30;
+      ballDX = 4 * (Math.random() > 0.5 ? 1 : -1);
+      ballDY = -4;
+      paddleX = (canvasWidth - paddleWidth) / 2;
+    }
+
+    function resetGame() {
+      lives = 3;
+      score = 0;
+      livesEl.innerText = lives;
+      scoreEl.innerText = score;
+      initBricks();
+      resetBall();
+      gameOverDiv.style.display = 'none';
+      gameOverTitle.innerText = 'Game Over';
+      winMessage.style.display = 'none';
+      if (animationId) cancelAnimationFrame(animationId);
+      draw();
+    }
+
     function drawBall() {
       ctx.beginPath();
       ctx.arc(ballX, ballY, ballSize/2, 0, Math.PI*2);
-      ctx.fillStyle = "#0095DD";
+      const gradient = ctx.createRadialGradient(ballX - 2, ballY - 2, 0, ballX, ballY, ballSize/2);
+      gradient.addColorStop(0, '#00AAFF');
+      gradient.addColorStop(1, '#005588');
+      ctx.fillStyle = gradient;
       ctx.fill();
       ctx.closePath();
     }
 
     function drawPaddle() {
       ctx.beginPath();
-      ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
-      ctx.fillStyle = "#0095DD";
+      const radius = 8;
+      ctx.roundRect(paddleX, canvasHeight - paddleHeight, paddleWidth, paddleHeight, radius);
+      const gradient = ctx.createLinearGradient(0, canvasHeight - paddleHeight, 0, canvasHeight);
+      gradient.addColorStop(0, '#0095DD');
+      gradient.addColorStop(1, '#005588');
+      ctx.fillStyle = gradient;
       ctx.fill();
       ctx.closePath();
     }
@@ -75,61 +237,17 @@
             b.x = brickX;
             b.y = brickY;
             ctx.beginPath();
-            ctx.rect(brickX, brickY, brickWidth, brickHeight);
-            ctx.fillStyle = "#0095DD";
+            ctx.roundRect(brickX, brickY, brickWidth, brickHeight, 4);
+            const hue = 200 + r * 15;
+            const gradient = ctx.createLinearGradient(0, brickY, 0, brickY + brickHeight);
+            gradient.addColorStop(0, `hsl(${hue}, 80%, 55%)`);
+            gradient.addColorStop(1, `hsl(${hue}, 80%, 35%)`);
+            ctx.fillStyle = gradient;
             ctx.fill();
             ctx.closePath();
           }
         }
       }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBricks();
-      drawBall();
-      drawPaddle();
-      drawScore();
-      drawLives();
-      collisionDetection();
-
-      // Ball movement
-      ballX += ballDX;
-      ballY += ballDY;
-
-      // Wall collisions
-      if (ballX + ballSize/2 > canvas.width || ballX - ballSize/2 < 0) {
-        ballDX = -ballDX;
-      }
-      if (ballY - ballSize/2 < 0) {
-        ballDY = -ballDY;
-      }
-      if (ballY + ballSize/2 > canvas.height) {
-        lives--;
-        if (!lives) {
-          gameOver();
-        } else {
-          resetBall();
-        }
-      }
-
-      // Paddle collision
-      if (ballY + ballSize/2 > canvas.height - paddleHeight &&
-          ballX > paddleX && ballX < paddleX + paddleWidth) {
-        ballDY = -Math.abs(ballDY); // ensure going up
-        // Add some angle based on where hit paddle
-        const hitPos = (ballX - paddleX) / paddleWidth;
-        ballDX = 8 * (hitPos - 0.5);
-      }
-
-      // Paddle movement
-      if (rightPressed && paddleX < canvas.width - paddleWidth) {
-        paddleX += 7;
-      } else if (leftPressed && paddleX > 0) {
-        paddleX -= 7;
-      }
-
-      requestAnimationFrame(draw);
     }
 
     function collisionDetection() {
@@ -143,6 +261,7 @@
               b.status = 0;
               score += 10;
               scoreEl.innerText = score;
+              
               // Check win
               let allBroken = true;
               for (let cc = 0; cc < brickColumnCount; cc++) {
@@ -155,8 +274,7 @@
                 if (!allBroken) break;
               }
               if (allBroken) {
-                alert("You Win! Congrats!");
-                document.location.reload();
+                gameOver(true);
               }
             }
           }
@@ -164,72 +282,168 @@
       }
     }
 
-    function resetBall() {
-      ballX = canvas.width / 2;
-      ballY = canvas.height - 40;
-      ballDX = 4 * (Math.random() > 0.5 ? 1 : -1);
-      ballDY = -4;
-      paddleX = (canvas.width - paddleWidth) / 2;
-    }
-
-    function gameOver() {
+    function gameOver(won = false) {
       gameOverDiv.style.display = 'block';
       finalScoreEl.innerText = score;
-      cancelAnimationFrame(animation);
+      gameOverTitle.innerText = won ? 'You Win!' : 'Game Over';
+      winMessage.style.display = won ? 'block' : 'none';
+      cancelAnimationFrame(animationId);
     }
 
-    function resetGame() {
-      lives = 3;
-      score = 0;
-      livesEl.innerText = lives;
-      scoreEl.innerText = score;
-      initBricks();
-      resetBall();
-      gameOverDiv.style.display = 'none';
+    function draw() {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      collisionDetection();
+
+      // Ball movement
+      ballX += ballDX;
+      ballY += ballDY;
+
+      // Wall collisions
+      if (ballX + ballSize/2 > canvasWidth || ballX - ballSize/2 < 0) {
+        ballDX = -ballDX;
+        ballX = Math.max(ballSize/2, Math.min(canvasWidth - ballSize/2, ballX));
+      }
+      if (ballY - ballSize/2 < 0) {
+        ballDY = -ballDY;
+        ballY = ballSize/2;
+      }
+      if (ballY + ballSize/2 > canvasHeight) {
+        lives--;
+        livesEl.innerText = lives;
+        if (!lives) {
+          gameOver(false);
+        } else {
+          resetBall();
+        }
+      }
+
+      // Paddle collision
+      if (ballY + ballSize/2 > canvasHeight - paddleHeight &&
+          ballX > paddleX && ballX < paddleX + paddleWidth) {
+        ballDY = -Math.abs(ballDY);
+        const hitPos = (ballX - paddleX) / paddleWidth;
+        ballDX = 8 * (hitPos - 0.5);
+      }
+
+      // Paddle movement (desktop keyboard)
+      if (!isMobile) {
+        if (rightPressed && paddleX < canvasWidth - paddleWidth) {
+          paddleX += 7;
+        } else if (leftPressed && paddleX > 0) {
+          paddleX -= 7;
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    // Desktop keyboard
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+    });
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+    });
+
+    // Desktop mouse
+    canvas.addEventListener("mousemove", (e) => {
+      if (isMobile) return;
+      const rect = canvas.getBoundingClientRect();
+      paddleX = e.clientX - rect.left - paddleWidth / 2;
+      paddleWidth / 2;
+      paddleX = Math.max(0, Math.min(canvasWidth - paddleWidth, paddleX));
+    });
+
+    // Mobile controller
+    function setupController() {
+      const trackRect = track.getBoundingClientRect();
+      
+      function moveKnob(clientX) {
+        const trackLeft = trackRect.left;
+        const trackWidth = trackRect.width;
+        const knobRadius = knob.offsetWidth / 2;
+        
+        let relativeX = clientX - trackLeft;
+        relativeX = Math.max(knobRadius, Math.min(trackWidth - knobRadius, relativeX));
+        
+        const knobPercent = (relativeX - knobRadius) / (trackWidth - 2 * knobRadius);
+        paddleX = knobPercent * (canvasWidth - paddleWidth);
+        
+        knob.style.left = `${relativeX}px`;
+      }
+
+      // Touch events
+      track.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        controllerActive = true;
+        const touch = e.touches[0];
+        controllerStartX = touch.clientX;
+        controllerStartPaddleX = paddleX;
+        const trackRect = track.getBoundingClientRect();
+        const knobRadius = knob.offsetWidth / 2;
+        let relativeX = touch.clientX - trackRect.left;
+        relativeX = Math.max(knobRadius, Math.min(trackRect.width - knobRadius, relativeX));
+        knob.style.left = `${relativeX}px`;
+      }, { passive: false });
+
+      track.addEventListener('touchmove', (e) => {
+        if (!controllerActive) return;
+        e.preventDefault();
+        const touch = e.touches[0];
+        moveKnob(touch.clientX);
+      }, { passive: false });
+
+      track.addEventListener('touchend', () => {
+        controllerActive = false;
+      });
+
+      // Mouse events on controller (for testing on desktop)
+      track.addEventListener('mousedown', (e) => {
+        if (!isMobile) return;
+        controllerActive = true;
+        moveKnob(e.clientX);
+      });
+      track.addEventListener('mousemove', (e) => {
+        if (!controllerActive || !isMobile) return;
+        moveKnob(e.clientX);
+      });
+      document.addEventListener('mouseup', () => {
+        controllerActive = false;
+      });
+    }
+
+    function handleResize() {
+      const wasMobile = isMobile;
+      computeSizes();
+      
+      // Recalculate paddle position proportionally
+      if (paddleX !== undefined) {
+        const oldWidth = wasMobile ? 0 : canvasWidth; // approximate
+        paddleX = Math.max(0, Math.min(canvasWidth - paddleWidth, paddleX));
+      }
+      
+      // Reset ball if needed
+      if (ballX !== undefined) {
+        ballX = Math.max(ballSize/2, Math.min(canvasWidth - ballSize/2, ballX));
+        ballY = Math.max(ballSize/2, Math.min(canvasHeight - ballSize/2, ballY));
+      }
+      
+      if (animationId) cancelAnimationFrame(animationId);
       draw();
     }
 
-    function drawScore() {
-      ctx.font = "16px Arial";
-      ctx.fillStyle = "#0095DD";
-      ctx.fillText("Score: " + score, 8, 20);
-    }
-
-    function drawLives() {
-      ctx.font = "16px Arial";
-      ctx.fillStyle = "#0095DD";
-      ctx.fillText("Lives: " + lives, canvas.width - 65, 20);
-    }
-
-    document.addEventListener("keydown", keyDownHandler, false);
-    document.addEventListener("keyup", keyUpHandler, false);
-    function keyDownHandler(e) {
-      if (e.key === "Right" || e.key === "ArrowRight") {
-        rightPressed = true;
-      } else if (e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = true;
-      }
-    }
-    function keyUpHandler(e) {
-      if (e.key === "Right" || e.key === "ArrowRight") {
-        rightPressed = false;
-      } else if (e.key === "Left" || e.key === "ArrowLeft") {
-        leftPressed = false;
-      }
-    }
-
-    // Mouse movement for paddle
-    document.addEventListener("mousemove", mouseMoveHandler, false);
-    function mouseMoveHandler(e) {
-      const relativeX = e.clientX - canvas.offsetLeft;
-      if (relativeX > 0 && relativeX < canvas.width) {
-        paddleX = relativeX - paddleWidth / 2;
-      }
-    }
-
+    // Initialize
+    computeSizes();
     initBricks();
     resetBall();
-    let animation = requestAnimationFrame(draw);
+    setupController();
+    window.addEventListener('resize', handleResize);
+    draw();
   </script>
 </body>
 </html>
