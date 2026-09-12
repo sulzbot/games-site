@@ -112,6 +112,21 @@ function renderBoard() {
         el.className = 'piece ' + (p === p.toUpperCase() ? 'white' : 'black');
         el.innerText = pieceChars[p.toUpperCase()] || p;
         el.draggable = true;
+        el.addEventListener('touchstart', e => {
+          if (turn !== 'w' || p !== p.toUpperCase()) return;
+          selected = {r, c}; e.preventDefault();
+        }, {passive: false});
+        el.addEventListener('touchmove', e => {
+          if (!selected || selected.r !== r || selected.c !== c) return;
+          e.preventDefault();
+          const touch = e.touches[0];
+          const target = document.elementFromPoint(touch.clientX, touch.clientY);
+          if (target && target.closest('.square')) {
+            const sq = target.closest('.square');
+            const er = parseInt(sq.dataset.r), ec = parseInt(sq.dataset.c);
+            if (er !== r || ec !== c) makeMove(r, c, er, ec);
+          }
+        }, {passive: false});
         el.addEventListener('dragstart', e => {
           if (turn !== 'w' || p !== p.toUpperCase()) { e.preventDefault(); return; }
           selected = {r, c};
