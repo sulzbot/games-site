@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Midnight Maze</title><link rel="icon" href="data:,"><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><div class="eyebrow">SULZBOT ARCADE <span>01 / AFTER HOURS</span></div><h1>MIDNIGHT<span>MAZE</span></h1><p>A little light. A long night. Keep moving.</p></header>
+<section class="stats" aria-label="Game statistics"><div>SCORE<strong id="score">00000</strong></div><div>BEST<strong id="best">00000</strong></div><div>LEVEL<strong id="level">01</strong></div><div>LIVES<strong id="lives">● ● ●</strong></div></section>
+<div class="board"><canvas id="game" width="608" height="672" aria-label="Maze game. Use arrow keys or WASD to move."></canvas><div id="overlay"><div class="badge">THE NIGHT IS YOURS</div><h2 id="title">Chase the glow.</h2><p id="message">Collect every light. Dodge the ghosts.<br>Grab a power orb to turn the tables.</p><button id="start">Enter the maze <span>→</span></button></div></div>
+<div class="toolbar"><span id="status" role="status">READY WHEN YOU ARE</span><button id="pause" disabled>Pause</button><button id="restart">Restart</button></div>
+<nav class="pad" aria-label="Movement controls"><button data-dir="up" aria-label="Move up">↑</button><div><button data-dir="left" aria-label="Move left">←</button><button data-dir="down" aria-label="Move down">↓</button><button data-dir="right" aria-label="Move right">→</button></div></nav>
+<footer><span><kbd>↑ ↓ ← →</kbd> or <kbd>W A S D</kbd> to move</span><span><kbd>Space</kbd> to pause · Swipe on mobile</span></footer>
+</main><script src="script.js"></script></body></html>
