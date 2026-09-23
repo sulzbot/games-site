@@ -11,42 +11,41 @@
 <body>
   <main class="cabinet">
     <header class="masthead">
-      <div class="eyebrow"><span>SULZBOT ARCADE</span><span>WORLD 1 · THE HIGH MEADOWS</span></div>
+      <div class="eyebrow"><span>SULZBOT ARCADE</span><span id="world-name">WORLD 1 · THE HIGH MEADOWS</span></div>
       <h1>CLOUDSTEP <span>QUEST</span></h1>
       <p>Up where the clouds keep secrets.</p>
     </header>
-
     <section class="hud" aria-label="Game status">
       <div>ADVENTURER<strong id="hero-name">PIP</strong></div>
       <div>STARDUST<strong id="score">000000</strong></div>
-      <div>GEMS<strong id="gems">0 / 0</strong></div>
+      <div>LEVEL<strong id="level">MAP</strong></div>
       <div>HEARTS<strong id="lives">♥ ♥ ♥</strong></div>
     </section>
-
     <section class="screen" aria-label="Cloudstep Quest game">
-      <canvas id="game" width="384" height="240" aria-label="Side-scrolling platform game. Move with arrow keys or A and D. Jump with Space, W, or Up."></canvas>
+      <canvas id="game" width="384" height="240" aria-label="Cloudstep Quest overworld and side-scrolling platform game."></canvas>
       <div class="overlay" id="overlay">
         <div class="ribbon" id="ribbon">A LITTLE ADVENTURE</div>
         <h2 id="overlay-title">The sky is calling.</h2>
-        <p id="overlay-copy">Run, leap, gather sky gems, and bounce on the grumblebugs. Find the flag at the far end of the meadow.</p>
-        <button class="primary" id="start">Start the quest <span>▶</span></button>
+        <p id="overlay-copy">Eight curious lands, one winding route. Pick a stop on the world map and help Pip find the far sky.</p>
+        <button class="primary" id="start">Open the world map <span>▶</span></button>
       </div>
     </section>
-
+    <section class="world-panel" id="world-panel" hidden aria-label="World map level selection">
+      <div class="map-heading"><strong>THE STORYBOOK ROUTE</strong><span id="map-progress">1 OF 8 LANDS OPEN</span></div>
+      <p>Choose an unlocked stop. Finish a level to open the next.</p>
+      <nav id="level-list" class="level-list" aria-label="Eight connected levels"></nav>
+      <div class="map-tip">Tap a numbered map marker or choose a land above.</div>
+    </section>
     <div class="controls-row">
       <span class="hint" id="hint" role="status">READY FOR ADVENTURE</span>
+      <button class="small-button" id="map-button" hidden>World map</button>
       <button class="small-button" id="pause" disabled>Pause</button>
       <button class="small-button" id="restart">Restart</button>
     </div>
-
-    <nav class="touch-controls" aria-label="Touch game controls">
-      <div class="direction-pad">
-        <button data-action="left" aria-label="Run left">◀</button>
-        <button data-action="right" aria-label="Run right">▶</button>
-      </div>
+    <nav id="touch-controls" class="touch-controls" aria-label="Touch game controls">
+      <div class="direction-pad"><button data-action="left" aria-label="Run left">◀</button><button data-action="right" aria-label="Run right">▶</button></div>
       <button class="jump-button" data-action="jump" aria-label="Jump">JUMP <span>↟</span></button>
     </nav>
-
     <footer><span><kbd>← →</kbd> / <kbd>A D</kbd> run · <kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span><span>Hold jump for extra height · stomp bugs · grab gems</span></footer>
   </main>
   <script src="game.js"></script>
