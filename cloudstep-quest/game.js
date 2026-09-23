@@ -10,7 +10,7 @@
   let tiles, gems, bugs, sparks, score = 0, lives = 3, state = 'ready', cameraX = 0, cameraY = 0;
   let powered = false, invincible = 0, clock = 0, last = 0, accumulator = 0, checkpoint = 3;
   const control = { left: false, right: false, jump: false };
-  const hero = { x: 3*T, y: 0, w: 18, h: 23, vx: 0, vy: 0, facing: 1, grounded: false, coyote: 0, jumpBuffer: 0, anim: 0 };
+  const hero = { x: 3*T, y: 0, w: 18, h: 24, vx: 0, vy: 0, facing: 1, grounded: false, coyote: 0, jumpBuffer: 0, anim: 0 };
   const solid = (x, y) => x < 0 || x >= COLS || (y >= 0 && y < ROWS && tiles[y]?.[x] != null);
 
   function buildWorld() {
@@ -108,7 +108,7 @@
   }
   function drawHero(){
     const x=Math.round(hero.x-cameraX),y=Math.round(hero.y-cameraY);if(invincible>0&&Math.floor(clock*15)%2===0)return;
-    ctx.save();if(hero.facing<0){ctx.translate(x+hero.w,0);ctx.scale(-1,1);}else ctx.translate(x,0);
+    ctx.save();if(hero.facing<0){ctx.translate(x+hero.w,y);ctx.scale(-1,1);}else ctx.translate(x,y);
     const run=hero.grounded&&Math.abs(hero.vx)>8?Math.floor(hero.anim)%2:0;
     rect(5,1,10,5,'#e9a461');rect(3,5,14,11,'#42a9a0');rect(1,9,5,8,'#35928e');rect(6,8,8,7,'#f0bd83');rect(13,9,3,3,'#243850');rect(6,14,10,5,'#674969');rect(3,17,6,4,'#44354d');rect(12,17,6,4,'#44354d');rect(run?1:3,20,7,3,'#5b3e39');rect(run?12:10,20,7,3,'#5b3e39');rect(1,22,8,2,'#e3b16f');rect(11,22,8,2,'#e3b16f');rect(5,0,12,2,'#f6d08a');
     if(powered){rect(4,-4,12,4,'#f47662');rect(2,-2,3,4,'#f47662');rect(15,-2,3,4,'#f47662');}
