@@ -22,13 +22,23 @@
       <div>HEARTS<strong id="lives">♥ ♥ ♥</strong></div>
     </section>
     <div class="power-status" aria-live="polite"><span>ACTIVE POWER</span><strong id="ability">NONE</strong><span id="power-timer">Find a relic</span><small>Each relic lasts 10 seconds</small></div>
-    <section class="screen" aria-label="Cloudstep Quest game">
-      <canvas id="game" width="384" height="240" aria-label="Cloudstep Quest overworld and side-scrolling platform game."></canvas>
+    <section class="screen" id="screen" aria-label="Cloudstep Quest game">
+      <canvas id="game" width="384" height="240" aria-label="Cloudstep Quest gameplay canvas."></canvas>
+      <canvas id="overworld-3d" aria-label="Animated isometric world map. Select an unlocked island or use the level list below."></canvas>
       <div class="overlay" id="overlay">
-        <div class="ribbon" id="ribbon">A LITTLE ADVENTURE</div>
-        <h2 id="overlay-title">The sky is calling.</h2>
-        <p id="overlay-copy">Eight sprawling lands, a winding route, and a boss guarding every finish. Find four relics for timed fireballs, giant form, invincibility, and flight.</p>
-        <button class="primary" id="start">Open the world map <span>▶</span></button>
+        <div class="menu-parallax" aria-hidden="true">
+          <div class="parallax-sun" data-parallax="sun"></div>
+          <div class="parallax-ridge ridge-far" data-parallax="far"></div>
+          <div class="parallax-ridge ridge-mid" data-parallax="mid"></div>
+          <div class="parallax-ridge ridge-near" data-parallax="near"></div>
+          <div class="parallax-grain"></div>
+        </div>
+        <div class="menu-card">
+          <div class="ribbon" id="ribbon">CLOUDSTEP QUEST · STORY MODE</div>
+          <h2 id="overlay-title">The sky is calling.</h2>
+          <p id="overlay-copy">Eight sprawling lands, a winding route, and a boss guarding every finish. Find four relics for timed fireballs, giant form, invincibility, and flight.</p>
+          <button class="primary" id="start">Open the world map <span>▶</span></button>
+        </div>
       </div>
     </section>
     <section class="world-panel" id="world-panel" hidden aria-label="World map level selection">
@@ -50,6 +60,7 @@
     </nav>
     <footer><span><kbd>← →</kbd> / <kbd>A D</kbd> run · <kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span><span><kbd>F</kbd> fireball · grab all relics · stomp each boss 3 times</span></footer>
   </main>
+  <script src="overworld.bundle.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@
   ];
   const MAP_NODES=[[38,175],[84,133],[130,171],[176,126],[222,163],[267,116],[311,151],[348,92]];
 
-  let levelIndex=0,unlocked=1,mapSelection=0,tiles,gems=[],bugs=[],sparks=[],decorations=[],waterZones=[],powerups=[],fireballs=[],hostileShots=[],boss=null,score=0,lives=3,state='ready',stage,cameraX=0,cameraY=0,powerType='',powerTimer=0,damageFlash=0,fireCooldown=0,clock=0,last=0,acc=0,checkpoint=3;
+  let levelIndex=0,unlocked=1,mapSelection=0,tiles,gems=[],bugs=[],sparks=[],decorations=[],waterZones=[],powerups=[],fireballs=[],hostileShots=[],boss=null,overworld3d=null,score=0,lives=3,state='ready',stage,cameraX=0,cameraY=0,powerType='',powerTimer=0,damageFlash=0,fireCooldown=0,clock=0,last=0,acc=0,checkpoint=3;
   const control={left:false,right:false,jump:false,fire:false};
   const hero={x:3*T,y:0,w:18,h:24,vx:0,vy:0,facing:1,grounded:false,coyote:0,jumpBuffer:0,anim:0};
   try{unlocked=Math.max(1,Math.min(LEVELS.length,Number(localStorage.getItem('cloudstep-unlocked'))||1));}catch{}
@@ -66,6 +66,7 @@
     $('pause').disabled=state!=='playing'&&state!=='paused';$('pause').textContent=state==='paused'?'Resume':'Pause';
     $('hint').textContent=state==='playing'?(boss?.alive&&hero.x>boss.x-180?'BOSS: JUMP ON THE HEAD · '+boss.hp+' HITS LEFT':isSwimming()?'SPLASH! TAP JUMP TO SWIM':powerType?`${POWER_LABELS[powerType]} · ${powerTimer.toFixed(1)}s`:`${Math.max(0,Math.ceil((WORLD_W-hero.x)/T))} CLOUDSTEPS TO BOSS`):state==='paused'?'ADVENTURE ON HOLD':state==='won'?'BOSS DEFEATED · NEXT STOP UNLOCKED':state==='over'?'PIP NEEDS A BREATHER':state==='map'?'PICK A NUMBERED STOP · FINISH TO UNLOCK THE NEXT':'READY FOR ADVENTURE';
     $('ability').textContent=powerType?POWER_LABELS[powerType]:'NONE';$('power-timer').textContent=powerType?`${powerTimer.toFixed(1)}s`:'Find a relic';$('fire').disabled=powerType!=='fireball';
+    const is3DMap=state==='map'&&Boolean(overworld3d?.available);$('screen').classList.toggle('is-map',is3DMap);
     $('world-panel').hidden=state!=='map';$('touch-controls').hidden=state==='map'||state==='ready'||state==='won'||state==='over';$('map-button').hidden=state!=='playing'&&state!=='paused';
     canvas.dataset.gameState=state;canvas.dataset.level=String(levelIndex+1);canvas.dataset.theme=stage?.name||'';canvas.dataset.playerX=String(Math.round(hero.x));canvas.dataset.playerY=String(Math.round(hero.y));canvas.dataset.score=String(score);canvas.dataset.lives=String(lives);canvas.dataset.swimming=String(isSwimming());canvas.dataset.power=powerType;canvas.dataset.powerTime=powerTimer.toFixed(1);canvas.dataset.worldCols=String(COLS);canvas.dataset.enemyTypes=[...new Set((bugs||[]).map(e=>e.type))].join(',');canvas.dataset.bossName=boss?.name||'';canvas.dataset.bossHits=String(boss?.hp??0);canvas.dataset.bossAlive=String(Boolean(boss?.alive));canvas.dataset.playerWidth=String(hero.w);canvas.dataset.playerHeight=String(hero.h);canvas.dataset.fireballs=String(fireballs.length);canvas.dataset.hostileShots=String(hostileShots.length);canvas.dataset.relicsLeft=String(powerups.filter(p=>p.alive).length);
   }
@@ -208,7 +209,7 @@
     ctx.fillStyle='#f4f0d6';ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText('PIP’S STORYBOOK MAP',12,17);ctx.fillStyle='#d0e6d9';ctx.font='7px monospace';ctx.fillText('FOLLOW THE DOTTED PATH · TAP AN OPEN STOP',12,29);
   }
   function draw(){
-    ctx.imageSmoothingEnabled=false;if(state==='map'){drawMap();return;}drawBackground();
+    ctx.imageSmoothingEnabled=false;if(state==='map'){if(!overworld3d?.available)drawMap();return;}drawBackground();
     for(let y=0;y<ROWS;y++)for(let x=Math.max(0,Math.floor(cameraX/T)-1);x<Math.min(COLS,Math.ceil((cameraX+W)/T)+1);x++){const type=tiles?.[y]?.[x];if(type)drawTile(x,y,type);}
     drawWater();drawDecorations();
     for(const g of gems||[])if(g.alive){const x=Math.round(g.x-cameraX),y=Math.round(g.y-cameraY+Math.sin(clock*5+g.bob)*2);rect(x-4,y-5,8,10,'#6c4fc1');rect(x-2,y-7,4,14,'#8f77ed');rect(x-1,y-4,2,4,'#fff3bf');}
@@ -217,15 +218,22 @@
     if(state==='playing'){rect(9,9,88,4,'#23465c');rect(9,9,88*Math.max(0,(boss.home-hero.x)/(boss.home-checkpoint*T)),4,'#fff1bd');}
   }
 
-  function frame(now){const elapsed=Math.min(.05,(now-last)/1000||0);last=now;if(state==='playing'){acc+=elapsed;while(acc>=1/60){update(1/60);acc-=1/60;}}draw();requestAnimationFrame(frame);}
+  function frame(now){const elapsed=Math.min(.05,(now-last)/1000||0);last=now;if(state==='playing'){acc+=elapsed;while(acc>=1/60){update(1/60);acc-=1/60;}}draw();overworld3d?.render(state==='map',now/1000);requestAnimationFrame(frame);}
   function setControl(name,on){if(name==='jump'&&on&&!control.jump)hero.jumpBuffer=.12;control[name]=on;if(on&&state==='ready')startCampaign();}
   function keyDown(e){const k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup',' ','a','d','w','p','enter','f'].includes(k))e.preventDefault();if(state==='map'){if(k==='arrowleft'||k==='a')mapSelection=Math.max(0,mapSelection-1);if(k==='arrowright'||k==='d')mapSelection=Math.min(unlocked-1,mapSelection+1);if(k==='enter'&&mapSelection<unlocked)startLevel(mapSelection);makeLevelCards();return;}if(k==='arrowleft'||k==='a')setControl('left',true);if(k==='arrowright'||k==='d')setControl('right',true);if(k==='arrowup'||k==='w'||k===' ')setControl('jump',true);if(k==='f')setControl('fire',true);if(k==='p')togglePause();}
   function keyUp(e){const k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')setControl('left',false);if(k==='arrowright'||k==='d')setControl('right',false);if(k==='arrowup'||k==='w'||k===' ')setControl('jump',false);if(k==='f')setControl('fire',false);}
+  const screen=$('screen'),parallaxLayers=[...screen.querySelectorAll('[data-parallax]')],parallaxDepth={sun:.14,far:.28,mid:.52,near:.82};
+  screen.addEventListener('pointermove',e=>{if($('overlay').hidden||state==='map'||state==='playing')return;const r=screen.getBoundingClientRect(),dx=(e.clientX-r.left)/r.width-.5,dy=(e.clientY-r.top)/r.height-.5;for(const layer of parallaxLayers){const depth=parallaxDepth[layer.dataset.parallax]||.3;layer.style.transform=`translate3d(${dx*26*depth}px,${dy*18*depth}px,0)`;}},{passive:true});
+  screen.addEventListener('pointerleave',()=>{for(const layer of parallaxLayers)layer.style.transform='translate3d(0,0,0)';},{passive:true});
+  function suppressGameSelection(e){e.preventDefault();}
+  for(const element of [$('screen'),$('touch-controls')])for(const type of ['contextmenu','selectstart','dragstart'])element.addEventListener(type,suppressGameSelection);
   window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',()=>{control.left=control.right=control.jump=control.fire=false;});
   document.querySelectorAll('[data-action]').forEach(button=>{const action=button.dataset.action;button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);setControl(action,true);});const release=e=>{e.preventDefault();setControl(action,false);};button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);button.addEventListener('lostpointercapture',()=>setControl(action,false));});
   canvas.addEventListener('pointerdown',e=>{if(state!=='map')return;const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*W/r.width,y=(e.clientY-r.top)*H/r.height;let nearest=-1,distance=16;MAP_NODES.forEach(([nx,ny],i)=>{const d=Math.hypot(x-nx,y-ny);if(d<distance){distance=d;nearest=i;}});if(nearest>=0){mapSelection=nearest;if(nearest<unlocked)startLevel(nearest);else{makeLevelCards();hud();}}});
   $('start').addEventListener('click',()=>{if(state==='ready')startCampaign();else if(state==='paused')togglePause();else if(state==='won')openMap();else if(state==='over')startLevel(levelIndex,true);});
   $('pause').addEventListener('click',togglePause);$('map-button').addEventListener('click',openMap);$('restart').addEventListener('click',()=>state==='map'?startCampaign():state==='ready'?startCampaign():startLevel(levelIndex,true));
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')togglePause();});
-  buildWorld(0);hud();requestAnimationFrame(frame);
+  buildWorld(0);
+  if(window.CloudstepOverworld?.create)overworld3d=window.CloudstepOverworld.create({canvas:$('overworld-3d'),levels:LEVELS,getUnlocked:()=>unlocked,getSelected:()=>mapSelection,getVisible:()=>state==='map',onSelect:i=>{mapSelection=i;if(i<unlocked)startLevel(i);else{makeLevelCards();hud();}}});
+  hud();requestAnimationFrame(frame);
 })();
