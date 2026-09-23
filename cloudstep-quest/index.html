@@ -21,12 +21,13 @@
       <div>LEVEL<strong id="level">MAP</strong></div>
       <div>HEARTS<strong id="lives">♥ ♥ ♥</strong></div>
     </section>
+    <div class="power-status" aria-live="polite"><span>ACTIVE POWER</span><strong id="ability">NONE</strong><span id="power-timer">Find a relic</span><small>Each relic lasts 10 seconds</small></div>
     <section class="screen" aria-label="Cloudstep Quest game">
       <canvas id="game" width="384" height="240" aria-label="Cloudstep Quest overworld and side-scrolling platform game."></canvas>
       <div class="overlay" id="overlay">
         <div class="ribbon" id="ribbon">A LITTLE ADVENTURE</div>
         <h2 id="overlay-title">The sky is calling.</h2>
-        <p id="overlay-copy">Eight curious lands, one winding route. Pick a stop on the world map and help Pip find the far sky.</p>
+        <p id="overlay-copy">Eight sprawling lands, a winding route, and a boss guarding every finish. Find four relics for timed fireballs, giant form, invincibility, and flight.</p>
         <button class="primary" id="start">Open the world map <span>▶</span></button>
       </div>
     </section>
@@ -45,8 +46,9 @@
     <nav id="touch-controls" class="touch-controls" aria-label="Touch game controls">
       <div class="direction-pad"><button data-action="left" aria-label="Run left">◀</button><button data-action="right" aria-label="Run right">▶</button></div>
       <button class="jump-button" data-action="jump" aria-label="Jump">JUMP <span>↟</span></button>
+      <button class="fire-button" id="fire" data-action="fire" aria-label="Fire a fireball" disabled>FIRE</button>
     </nav>
-    <footer><span><kbd>← →</kbd> / <kbd>A D</kbd> run · <kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span><span>Hold jump for extra height · stomp bugs · grab gems</span></footer>
+    <footer><span><kbd>← →</kbd> / <kbd>A D</kbd> run · <kbd>SPACE</kbd> / <kbd>↑</kbd> jump</span><span><kbd>F</kbd> fireball · grab all relics · stomp each boss 3 times</span></footer>
   </main>
   <script src="game.js"></script>
 </body>
