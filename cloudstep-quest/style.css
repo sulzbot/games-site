@@ -73,9 +73,11 @@ h1 span { color: var(--gold); font-size: .63em; letter-spacing: 2px; margin-left
   user-select: none;
   -webkit-user-select: none;
 }
-#game { display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; image-rendering: auto; touch-action: none; }
-#overworld-3d { display: none; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+#scene-3d { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+#game { position: relative; z-index: 1; display: block; width: 100%; height: auto; aspect-ratio: 8 / 5; image-rendering: auto; touch-action: none; background: transparent; }
+#overworld-3d { display: none; position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; touch-action: none; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; cursor: grab; }
 #overworld-3d:active { cursor: grabbing; }
+.screen.is-map #scene-3d { visibility: hidden; }
 .screen.is-map #game { visibility: hidden; }
 .screen.is-map #overworld-3d { display: block; }
 .overlay {
